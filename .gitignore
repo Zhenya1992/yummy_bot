@@ -1,0 +1,23 @@
+# ▶️ Virtual environments
+venv/
+.env
+.env.docker
+.idea
+
+
+# ▶️ Python bytecode
+pycache/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ▶️ Md
+*.md
+
+*.jpg
+
+media/*
+!media/.gitkeep
+TODO
+
+logs/
