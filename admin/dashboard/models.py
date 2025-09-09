@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class User(models.Model):
+class Users(models.Model):
     """Класс для хранения информации о пользователях"""
 
     name = models.CharField(max_length=50)
@@ -38,7 +38,7 @@ class Products(models.Model):
 
     product_name = models.CharField(max_length=50, unique=True)
     description = models.TextField()
-    images = models.ImageField(upload_to='media/', blank=True, null=True)
+    image = models.ImageField(upload_to='media/', blank=True, null=True)
     price = models.DecimalField(max_digits=6, decimal_places=2)
     category = models.ForeignKey(Categories, on_delete=models.CASCADE, related_name='products')
 
