@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlalchemy import update, select, join, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -321,56 +322,51 @@ def db_delete_user_by_telegram_id(chat_id):
         return True
 
 
-# def db_get_order_info(cart_id):
-#     """Функция для получения данных для напоминания менеджеру"""
-#
-#     from sqlalchemy import func
-#     with get_session() as session:
-#         total = session.query(func.sum(Orders.final_price)) \
-#                     .filter(Orders.cart_id == cart_id).scalar() or 0.0
-#
-#         user = session.query(Users) \
-#             .join(Carts, Users.id == Carts.user_id) \
-#             .filter(Carts.id == cart_id).first()
-#
-#         return {
-#             "username": user.name if user else 'Отсутствует',
-#             "phone": user.phone if user else 'Отсутствует',
-#             "total_price": float(total)
-#         }
-
 def db_get_last_order_info(cart_id: int):
     """Функция для получения данных о последнем заказе"""
 
-    with (get_session() as session):
-        orders = session.query(Orders) \
-        .filter(Orders.cart_id==cart_id) \
-        .order_by(Orders.created_at.desc()).all()
-        if not orders:
+    with get_session() as session:
+
+        last_order_time = session.query(Orders.created_at) \
+            .filter(Orders.cart_id == cart_id) \
+            .order_by(Orders.created_at.desc()) \
+            .first()
+
+        if not last_order_time:
             return None
 
-        last_order_time = orders[0].created_at
-        last_order_items = [order for order in orders if order.created_at == last_order_time]
+        last_order_time = last_order_time[0]
+
+        last_order_items = session.query(Orders) \
+            .filter(Orders.cart_id == cart_id,
+                    Orders.created_at == last_order_time) \
+            .all()
 
         user = session.query(Users) \
-        .join(Carts, Users.id == Carts.user_id) \
-        .filter(Carts.id == cart_id).first()
+            .join(Carts, Users.id == Carts.user_id) \
+            .filter(Carts.id == cart_id).first()
 
         items = []
         total_price = 0
+        total_quantity = 0
+
         for item in last_order_items:
-            item_total = float(item.final_price) * item.quantity
+            price_per_unit = float(item.final_price) / item.quantity if item.quantity > 0 else 0
+
             items.append({
                 'name': item.product_name,
                 'quantity': item.quantity,
-                'price': float(item.final_price),
-                'total': item_total
+                'price': price_per_unit,
+                'total': float(item.final_price)
             })
-            total_price += item_total
+            total_price += float(item.final_price)
+            total_quantity += item.quantity
 
         return {
             "username": user.name if user else "Неизвестно",
             "phone": user.phone if user else "-",
             "total_price": total_price,
-            "items": items
+            "total_quantity": total_quantity,
+            "items": items,
+            "created_at": last_order_time
         }
